@@ -37,3 +37,26 @@ npm run build
 ```sh
 npm run lint
 ```
+
+# Capacitor setup
+
+### Capacitor instal
+
+```
+npm i @capacitor/core @capacitor/android
+npm i -D @capacitor/cli
+```
+
+### Capacitor instal
+
+```
+npx cap init
+npx cap add android
+```
+
+### Capacitor develop
+
+```
+npx cap sync
+npx cap run android
+```
