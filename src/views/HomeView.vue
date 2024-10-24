@@ -86,23 +86,33 @@ async function onStartRecording() {
   //   return
   // }
   result.value = null
-  await VoiceRecorder.startRecording().then(_onPromiseResolved('start')).catch(_onPromiseThrown)
+  await VoiceRecorder.requestAudioRecordingPermission().then(() => _updatePermissionStatusLabel())
+  await VoiceRecorder.startRecording()
+    .then(_onPromiseResolved('start'))
+    .catch(_onPromiseThrown('start'))
   isRecording.value = true
 }
 
 async function onPauseRecording() {
-  await VoiceRecorder.pauseRecording().then(_onPromiseResolved('pause')).catch(_onPromiseThrown)
+  await VoiceRecorder.pauseRecording()
+    .then(_onPromiseResolved('pause'))
+    .catch(_onPromiseThrown('pause'))
   isOnPause.value = true
 }
 async function onResumeRecording() {
-  await VoiceRecorder.resumeRecording().then(_onPromiseResolved('resume')).catch(_onPromiseThrown)
+  await VoiceRecorder.resumeRecording()
+    .then(_onPromiseResolved('resume'))
+    .catch(_onPromiseThrown('resume'))
   isOnPause.value = false
 }
 async function onStopRecording() {
-  const res = await VoiceRecorder.stopRecording(_onPromiseResolved('stop')).catch(_onPromiseThrown)
+  // @ts-expect-error
+  const res = await VoiceRecorder.stopRecording(_onPromiseResolved('stop')).catch(
+    _onPromiseThrown('stop')
+  )
 
-  result.value = res.value
-  console.log(res.value)
+  result.value = res?.value || null
+  console.log(res?.value)
   isRecording.value = false
   isOnPause.value = false
 }
@@ -111,8 +121,8 @@ async function onStopRecording() {
 // function onStartPlaying() {}
 
 /** Helpers */
-function _onPromiseResolved(operation) {
-  return async (result) => {
+function _onPromiseResolved(operation: string) {
+  return async (result?: any) => {
     if (!result.value) {
       toaster.error(`Failed to ${operation} recording`)
     }
@@ -122,11 +132,13 @@ function _onPromiseResolved(operation) {
   }
 }
 
-async function _onPromiseThrown(error) {
-  toaster.error(error)
-  await _updateOngoingRecordingStatus()
-  isRecording.value = false
-  isOnPause.value = false
+function _onPromiseThrown(operation: string) {
+  return async (error?: any) => {
+    toaster.error(`Failed to ${operation} recording`, error)
+    await _updateOngoingRecordingStatus()
+    isRecording.value = false
+    isOnPause.value = false
+  }
 }
 
 function _updatePermissionStatusLabel() {

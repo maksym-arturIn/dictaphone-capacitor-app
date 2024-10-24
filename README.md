@@ -59,4 +59,6 @@ npx cap add android
 ```
 npx cap sync
 npx cap run android
+// or
+npx cap open android
 ```
