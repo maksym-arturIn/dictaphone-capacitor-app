@@ -16,6 +16,7 @@
     "@capacitor/android": "^6.1.2",
     "@capacitor/core": "^6.1.2",
     "@capacitor/ios": "^6.1.2",
+    "@capawesome-team/capacitor-android-foreground-service": "^6.0.1",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.1.5",
     "capacitor-voice-recorder": "^6.0.3",

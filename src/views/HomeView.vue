@@ -48,6 +48,7 @@ import { toaster } from '@/utils/toaster'
 import { PlayIcon, PlayPauseIcon, StopIcon } from '@heroicons/vue/24/solid'
 import { Capacitor } from '@capacitor/core'
 import { VoiceRecorder } from 'capacitor-voice-recorder'
+import { ForegroundService } from '@capawesome-team/capacitor-android-foreground-service'
 
 const isMobile = ref(false)
 const isRecording = ref(false)
@@ -87,6 +88,7 @@ async function onStartRecording() {
   // }
   result.value = null
   await VoiceRecorder.requestAudioRecordingPermission().then(() => _updatePermissionStatusLabel())
+  await _startForegroundService()
   await VoiceRecorder.startRecording()
     .then(_onPromiseResolved('start'))
     .catch(_onPromiseThrown('start'))
@@ -115,12 +117,53 @@ async function onStopRecording() {
   console.log(res?.value)
   isRecording.value = false
   isOnPause.value = false
+
+  await _stopForegroundService()
 }
 
 /** Playing */
 // function onStartPlaying() {}
 
 /** Helpers */
+const _startForegroundService = async () => {
+  if (Capacitor.getPlatform() !== 'android') {
+    return false
+  }
+  const { display } = await ForegroundService.checkPermissions()
+
+  if (display === 'denied') {
+    const { display: permission } = await ForegroundService.requestPermissions()
+
+    if (permission === 'denied') {
+      throw new Error('requestPermissions permission is not grunted')
+    }
+  }
+
+  const { granted } = await ForegroundService.checkManageOverlayPermission()
+
+  if (!granted) {
+    const { granted } = await ForegroundService.requestManageOverlayPermission()
+
+    if (!granted) {
+      throw new Error('requestManageOverlayPermission permission is not grunted')
+    }
+  }
+
+  return await ForegroundService.startForegroundService({
+    title: 'TITLE _startForegroundService',
+    body: 'BODY _startForegroundService',
+    id: 123,
+    smallIcon: 'ic_stat_icon_config_sample'
+  })
+}
+
+const _stopForegroundService = async () => {
+  if (Capacitor.getPlatform() !== 'android') {
+    return false
+  }
+  return await ForegroundService.stopForegroundService()
+}
+
 function _onPromiseResolved(operation: string) {
   return async (result?: any) => {
     if (!result.value) {
@@ -136,6 +179,7 @@ function _onPromiseThrown(operation: string) {
   return async (error?: any) => {
     toaster.error(`Failed to ${operation} recording`, error)
     await _updateOngoingRecordingStatus()
+    // await _stopForegroundService()
     isRecording.value = false
     isOnPause.value = false
   }
