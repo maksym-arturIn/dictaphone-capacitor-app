@@ -49,6 +49,7 @@ import { PlayIcon, PlayPauseIcon, StopIcon } from '@heroicons/vue/24/solid'
 import { Capacitor } from '@capacitor/core'
 import { VoiceRecorder } from 'capacitor-voice-recorder'
 import { ForegroundService } from '@capawesome-team/capacitor-android-foreground-service'
+import { onUnmounted } from 'vue'
 
 const isMobile = ref(false)
 const isRecording = ref(false)
@@ -101,12 +102,14 @@ async function onPauseRecording() {
     .catch(_onPromiseThrown('pause'))
   isOnPause.value = true
 }
+
 async function onResumeRecording() {
   await VoiceRecorder.resumeRecording()
     .then(_onPromiseResolved('resume'))
     .catch(_onPromiseThrown('resume'))
   isOnPause.value = false
 }
+
 async function onStopRecording() {
   // @ts-expect-error
   const res = await VoiceRecorder.stopRecording(_onPromiseResolved('stop')).catch(
@@ -131,29 +134,39 @@ const _startForegroundService = async () => {
   }
   const { display } = await ForegroundService.checkPermissions()
 
-  if (display === 'denied') {
+  if (display !== 'granted') {
     const { display: permission } = await ForegroundService.requestPermissions()
 
-    if (permission === 'denied') {
+    if (permission !== 'granted') {
       throw new Error('requestPermissions permission is not grunted')
     }
-  }
 
-  const { granted } = await ForegroundService.checkManageOverlayPermission()
-
-  if (!granted) {
-    const { granted } = await ForegroundService.requestManageOverlayPermission()
+    const { granted } = await ForegroundService.checkManageOverlayPermission()
 
     if (!granted) {
-      throw new Error('requestManageOverlayPermission permission is not grunted')
+      const { granted } = await ForegroundService.requestManageOverlayPermission()
+
+      if (!granted) {
+        throw new Error('requestManageOverlayPermission permission is not grunted')
+      }
     }
   }
 
+  // const { granted } = await ForegroundService.checkManageOverlayPermission()
+
+  // if (!granted) {
+  //   const { granted } = await ForegroundService.requestManageOverlayPermission()
+
+  //   if (!granted) {
+  //     throw new Error('requestManageOverlayPermission permission is not grunted')
+  //   }
+  // }
+
   return await ForegroundService.startForegroundService({
-    title: 'TITLE _startForegroundService',
-    body: 'BODY _startForegroundService',
+    title: 'PlaynVoice app is recording',
+    body: 'Click to open the app and handle the recording process',
     id: 123,
-    smallIcon: 'ic_stat_icon_config_sample'
+    smallIcon: 'logo_green'
   })
 }
 
@@ -202,4 +215,18 @@ async function _updateOngoingRecordingStatus() {
     ongoingRecordingStatusLabel.value = result.status || 'Unknown'
   })
 }
+
+const stopForegroundServiceListener = () => {
+  console.log('The app is being closed. Cleaning up...')
+  // Perform any cleanup or shutdown tasks here
+  _stopForegroundService()
+}
+
+onMounted(() => {
+  window.addEventListener('appOnDestroy', stopForegroundServiceListener)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('appOnDestroy', stopForegroundServiceListener)
+})
 </script>
